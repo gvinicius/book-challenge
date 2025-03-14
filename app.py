@@ -1,26 +1,26 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from ariadne import load_schema_from_path, make_executable_schema, \
-    graphql_sync, ObjectType, QueryType, MutationType
-from ariadne.constants import PLAYGROUND_HTML
+import os
+from ariadne import make_executable_schema, graphql_sync, ObjectType
 
 app = Flask(__name__, static_folder='build')
 CORS(app)
 
-schema = make_executable_schema(type_defs, query, mutation)
+# Define GraphQL schema
+type_defs = """
+    type Query {
+        hello: String!
+    }
+"""
 
-@app.route("/graphql", methods=["GET"])
-def graphql_playground():
-    return PLAYGROUND_HTML, 200
-type_defs = ""
 query = ObjectType("Query")
-mutation = ObjectType("Mutation")
 
-schema = make_executable_schema(type_defs, query, mutation)
+@query.field("hello")
+def resolve_hello(*_):
+    return "Hello, world!"
 
-@app.route("/graphql", methods=["GET"])
-def graphql_playground():
-    return PLAYGROUND_HTML, 200
+# Create executable schema
+schema = make_executable_schema(type_defs, query)
 
 @app.route("/graphql", methods=["POST"])
 def graphql_server():
