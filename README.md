@@ -1,13 +1,13 @@
-# Technician Booking System (Book Challange)
+# Technician Booking System
 
 A compact Flask + GraphQL (Ariadne) + React application for managing technician bookings.
+Use an interactive chat that runs natural language processing in order to book a time.
 
-## Features
+## Tools
 
 - GraphQL API for all booking operations
 - SQLite database for data persistence
 - React frontend with Material UI
-- Natural language processing for booking commands
 
 ## Backend Setup
 
@@ -35,8 +35,7 @@ A compact Flask + GraphQL (Ariadne) + React application for managing technician 
 
 1. Install dependencies:
    ```bash
-   cd frontend
-   npm install
+   npm i
    ```
 
 2. Start the development server:
@@ -44,11 +43,18 @@ A compact Flask + GraphQL (Ariadne) + React application for managing technician 
    npm start
    ```
 
-   The frontend will be available at http://localhost:3000
+   The frontend will be available at http://localhost:5173
 
-## Running Tests
+## Running Backend Tests
 
 Run the tests with pytest:
 ```bash
-pytest
+pytest test_app.py
+```
+
+## Running Frontend Tests
+
+Run the tests with vitest:
+```bash
+npm test
 ```

@@ -1,103 +1,170 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'
+import { gql, useMutation, useQuery } from '@apollo/client'
+
+const PROCESS_NATURAL_LANGUAGE = gql`
+  mutation ProcessMessage($input: String!) {
+    processNaturalLanguage(input: $input)
+  }
+`
+
+export const GET_BOOKINGS = gql`
+  query GetBookings {
+    bookings {
+      id
+      name
+      profession
+      date
+      time
+    }
+  }
+`
 
 function App() {
-  const [bookings, setBookings] = useState([]);
-  const [name, setName] = useState('');
-  const [profession, setProfession] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [messages, setMessages] = useState([
+    { id: 0, text: "Hello! How can I help you today?", sender: 'system' }
+  ])
+  const [inputMessage, setInputMessage] = useState('')
 
-  useEffect(() => {
-    fetch('http://localhost:5000/graphql', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: '{ bookings { id name profession date time } }' })
-    })
-    .then(res => res.json())
-    .then(result => {
-      if (result.data && result.data.bookings) {
-        setBookings(result.data.bookings);
-      }
-    });
-  }, []);
+  const [processMessage] = useMutation(PROCESS_NATURAL_LANGUAGE)
+  const { data: bookingsData } = useQuery(GET_BOOKINGS)
 
-  // Create booking
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return
 
-    fetch('http://localhost:5000/graphql', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: `mutation {
-          createBooking(
-            name: "${name}",
-            profession: "${profession}",
-            date: "${date}",
-            time: "${time}"
-          ) {
-            id name profession date time
-          }
-        }`
+    const userMessage = {
+      id: Date.now(),
+      text: inputMessage,
+      sender: 'user'
+    }
+
+    setMessages(prev => [...prev, userMessage])
+
+    try {
+      const { data } = await processMessage({
+        variables: { input: inputMessage }
       })
-    })
-    .then(res => res.json())
-    .then(result => {
-      if (result.data && result.data.createBooking) {
-        setBookings([...bookings, result.data.createBooking]);
-        setName('');
-        setProfession('');
-        setDate('');
-        setTime('');
+
+      const systemMessage = {
+        id: Date.now() + 1,
+        text: data.processNaturalLanguage,
+        sender: 'system'
       }
-    });
-  };
+
+      setMessages(prev => [...prev, systemMessage])
+    } catch (error) {
+      console.error('Message processing error:', error)
+    }
+
+    setInputMessage('')
+  }
 
   return (
-    <div>
-      <h1>Technician Booking System</h1>
+    <div style={{
+      maxWidth: '28rem',
+      margin: '0 auto',
+      padding: '1rem',
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      <h1 style={{
+        fontSize: '1.5rem',
+        fontWeight: 'bold',
+        marginBottom: '1rem',
+        textAlign: 'center'
+      }}>
+        Technician Booking
+      </h1>
 
-      <form className="form" onSubmit={handleSubmit}>
-        <input
-          placeholder="Name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          required
-        />
-        <input
-          placeholder="Profession"
-          value={profession}
-          onChange={e => setProfession(e.target.value)}
-          required
-        />
-        <input
-          placeholder="Date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          required
-        />
-        <input
-          placeholder="Time"
-          value={time}
-          onChange={e => setTime(e.target.value)}
-          required
-        />
-        <button type="submit">Book</button>
-      </form>
-
-      <h2>Bookings</h2>
-      {bookings.length === 0 ? (
-        <p>No bookings yet</p>
-      ) : (
-        bookings.map(booking => (
-          <div className="booking" key={booking.id}>
-            <p><strong>{booking.name}</strong> - {booking.profession}</p>
-            <p>{booking.date} at {booking.time}</p>
+      <div style={{
+        border: '1px solid #e0e0e0',
+        borderRadius: '0.5rem',
+        height: '24rem',
+        overflowY: 'auto',
+        marginBottom: '1rem',
+        padding: '0.5rem'
+      }}>
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            style={{
+              display: 'flex',
+              justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+              marginBottom: '0.5rem'
+            }}
+          >
+            <div
+              style={{
+                maxWidth: '80%',
+                padding: '0.5rem',
+                borderRadius: '0.5rem',
+                backgroundColor: msg.sender === 'user' ? '#2196f3' : '#e0e0e0',
+                color: msg.sender === 'user' ? 'white' : 'black'
+              }}
+            >
+              {msg.text}
+            </div>
           </div>
-        ))
-      )}
+        ))}
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center'
+      }}>
+        <input
+          type="text"
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+          placeholder="Type your message..."
+          style={{
+            flexGrow: 1,
+            padding: '0.5rem',
+            border: '1px solid #ccc',
+            borderRadius: '0.25rem',
+            marginRight: '0.5rem'
+          }}
+        />
+        <button
+          onClick={handleSendMessage}
+          style={{
+            backgroundColor: '#2196f3',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            border: 'none',
+            borderRadius: '0.25rem',
+            cursor: 'pointer'
+          }}
+        >
+          Send
+        </button>
+      </div>
+
+      <div style={{ marginTop: '1rem' }}>
+        <h2 style={{
+          fontSize: '1.25rem',
+          fontWeight: 'bold',
+          marginBottom: '0.5rem'
+        }}>
+          Current Bookings
+        </h2>
+        <ul>
+          {bookingsData?.bookings.map((booking) => (
+            <li
+              key={booking.id}
+              style={{
+                padding: '0.5rem',
+                border: '1px solid #e0e0e0',
+                borderRadius: '0.25rem',
+                marginBottom: '0.5rem'
+              }}
+            >
+              {booking.name} - {booking.profession} on {booking.date} at {booking.time}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
